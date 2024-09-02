@@ -1,0 +1,523 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "machine_shape": "hm",
+      "authorship_tag": "ABX9TyO/Q4zeNKIdBgZaSdMbNAcO",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/CristeaStefan/LeWi2023/blob/main/LeWi2023%20\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!pip install torch transformers scikit-learn\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "e4pmP-eOvXUq",
+        "outputId": "73711689-52c2-44cc-f2a3-7e6e2305137a"
+      },
+      "execution_count": 29,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Requirement already satisfied: torch in /usr/local/lib/python3.10/dist-packages (2.4.0+cu121)\n",
+            "Requirement already satisfied: transformers in /usr/local/lib/python3.10/dist-packages (4.42.4)\n",
+            "Requirement already satisfied: scikit-learn in /usr/local/lib/python3.10/dist-packages (1.3.2)\n",
+            "Requirement already satisfied: filelock in /usr/local/lib/python3.10/dist-packages (from torch) (3.15.4)\n",
+            "Requirement already satisfied: typing-extensions>=4.8.0 in /usr/local/lib/python3.10/dist-packages (from torch) (4.12.2)\n",
+            "Requirement already satisfied: sympy in /usr/local/lib/python3.10/dist-packages (from torch) (1.13.2)\n",
+            "Requirement already satisfied: networkx in /usr/local/lib/python3.10/dist-packages (from torch) (3.3)\n",
+            "Requirement already satisfied: jinja2 in /usr/local/lib/python3.10/dist-packages (from torch) (3.1.4)\n",
+            "Requirement already satisfied: fsspec in /usr/local/lib/python3.10/dist-packages (from torch) (2024.6.1)\n",
+            "Requirement already satisfied: huggingface-hub<1.0,>=0.23.2 in /usr/local/lib/python3.10/dist-packages (from transformers) (0.23.5)\n",
+            "Requirement already satisfied: numpy<2.0,>=1.17 in /usr/local/lib/python3.10/dist-packages (from transformers) (1.26.4)\n",
+            "Requirement already satisfied: packaging>=20.0 in /usr/local/lib/python3.10/dist-packages (from transformers) (24.1)\n",
+            "Requirement already satisfied: pyyaml>=5.1 in /usr/local/lib/python3.10/dist-packages (from transformers) (6.0.2)\n",
+            "Requirement already satisfied: regex!=2019.12.17 in /usr/local/lib/python3.10/dist-packages (from transformers) (2024.5.15)\n",
+            "Requirement already satisfied: requests in /usr/local/lib/python3.10/dist-packages (from transformers) (2.32.3)\n",
+            "Requirement already satisfied: safetensors>=0.4.1 in /usr/local/lib/python3.10/dist-packages (from transformers) (0.4.4)\n",
+            "Requirement already satisfied: tokenizers<0.20,>=0.19 in /usr/local/lib/python3.10/dist-packages (from transformers) (0.19.1)\n",
+            "Requirement already satisfied: tqdm>=4.27 in /usr/local/lib/python3.10/dist-packages (from transformers) (4.66.5)\n",
+            "Requirement already satisfied: scipy>=1.5.0 in /usr/local/lib/python3.10/dist-packages (from scikit-learn) (1.13.1)\n",
+            "Requirement already satisfied: joblib>=1.1.1 in /usr/local/lib/python3.10/dist-packages (from scikit-learn) (1.4.2)\n",
+            "Requirement already satisfied: threadpoolctl>=2.0.0 in /usr/local/lib/python3.10/dist-packages (from scikit-learn) (3.5.0)\n",
+            "Requirement already satisfied: MarkupSafe>=2.0 in /usr/local/lib/python3.10/dist-packages (from jinja2->torch) (2.1.5)\n",
+            "Requirement already satisfied: charset-normalizer<4,>=2 in /usr/local/lib/python3.10/dist-packages (from requests->transformers) (3.3.2)\n",
+            "Requirement already satisfied: idna<4,>=2.5 in /usr/local/lib/python3.10/dist-packages (from requests->transformers) (3.8)\n",
+            "Requirement already satisfied: urllib3<3,>=1.21.1 in /usr/local/lib/python3.10/dist-packages (from requests->transformers) (2.0.7)\n",
+            "Requirement already satisfied: certifi>=2017.4.17 in /usr/local/lib/python3.10/dist-packages (from requests->transformers) (2024.7.4)\n",
+            "Requirement already satisfied: mpmath<1.4,>=1.1.0 in /usr/local/lib/python3.10/dist-packages (from sympy->torch) (1.3.0)\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import torch\n",
+        "import torch.nn as nn\n",
+        "import torch.optim as optim\n",
+        "from torch.utils.data import DataLoader, Dataset\n",
+        "from transformers import BertTokenizer, BertModel\n",
+        "from sklearn.metrics import f1_score\n",
+        "import json\n",
+        "import numpy as np\n",
+        "\n",
+        "##Libraries Used"
+      ],
+      "metadata": {
+        "id": "e56hRGiTv1IX"
+      },
+      "execution_count": 30,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "with open('/content/HS-Brexit_train.json', 'r') as f:  # Adjust the path if necessary\n",
+        "    data = json.load(f)\n",
+        "\n",
+        "import pandas as pd\n",
+        "\n",
+        "#JSON to PD\n",
+        "df = pd.DataFrame(data.values())\n",
+        "\n",
+        "print(df.head())\n",
+        "\n",
+        "#DataFrame to CSV file\n",
+        "csv_file_path = '/content/HS-Brexit_train.csv'\n",
+        "df.to_csv(csv_file_path, index=False)\n",
+        "print(f\"Data successfully saved to {csv_file_path}\")\n",
+        "\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "ioVBLN8JxGGS",
+        "outputId": "ed5a1e1c-3faf-449f-b582-1dc47b0029e0"
+      },
+      "execution_count": 31,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "                                                text        annotation task  \\\n",
+            "0  <user> <user> I'm so glad about #Brexit.. My a...  hate speech detection   \n",
+            "1  RT <user>: There was more to #Brexit than immi...  hate speech detection   \n",
+            "2  At the end of the day, the leave campaign won ...  hate speech detection   \n",
+            "3  So the reducing migration thing wasn't quite w...  hate speech detection   \n",
+            "4  A Brit Immigrant Asks Britain to Become India’...  hate speech detection   \n",
+            "\n",
+            "   number of annotations  annotations                     annotators lang  \\\n",
+            "0                      6  0,0,0,0,0,0  Ann1,Ann2,Ann3,Ann4,Ann5,Ann6   en   \n",
+            "1                      6  0,0,0,0,0,0  Ann1,Ann2,Ann3,Ann4,Ann5,Ann6   en   \n",
+            "2                      6  0,0,0,0,0,0  Ann1,Ann2,Ann3,Ann4,Ann5,Ann6   en   \n",
+            "3                      6  0,0,0,0,0,0  Ann1,Ann2,Ann3,Ann4,Ann5,Ann6   en   \n",
+            "4                      6  0,0,0,0,0,0  Ann1,Ann2,Ann3,Ann4,Ann5,Ann6   en   \n",
+            "\n",
+            "  hard_label            soft_label  split  \\\n",
+            "0          0  {'0': 1.0, '1': 0.0}  train   \n",
+            "1          0  {'0': 1.0, '1': 0.0}  train   \n",
+            "2          0  {'0': 1.0, '1': 0.0}  train   \n",
+            "3          0  {'0': 1.0, '1': 0.0}  train   \n",
+            "4          0  {'0': 1.0, '1': 0.0}  train   \n",
+            "\n",
+            "                                          other_info  \n",
+            "0  {'other annotations': {'aggressive language de...  \n",
+            "1  {'other annotations': {'aggressive language de...  \n",
+            "2  {'other annotations': {'aggressive language de...  \n",
+            "3  {'other annotations': {'aggressive language de...  \n",
+            "4  {'other annotations': {'aggressive language de...  \n",
+            "Data successfully saved to /content/HS-Brexit_train.csv\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from torch.utils.data import Dataset\n",
+        "\n",
+        "class BrexitDataset(Dataset):\n",
+        "    def __init__(self, dataframe, tokenizer, max_length=128):\n",
+        "        \"\"\"\n",
+        "        Initialize the Dataset with a DataFrame, tokenizer, and maximum length for tokenization.\n",
+        "\n",
+        "        :param dataframe: The pandas DataFrame containing the data.\n",
+        "        :param tokenizer: The tokenizer from the transformers library to tokenize the text.\n",
+        "        :param max_length: The maximum length of the tokenized sequences.\n",
+        "        \"\"\"\n",
+        "        self.dataframe = dataframe\n",
+        "        self.tokenizer = tokenizer\n",
+        "        self.max_length = max_length\n",
+        "\n",
+        "    def __len__(self):\n",
+        "        \"\"\"\n",
+        "        Return the total number of samples in the dataset.\n",
+        "        \"\"\"\n",
+        "        return len(self.dataframe)\n",
+        "\n",
+        "    def __getitem__(self, idx):\n",
+        "        \"\"\"\n",
+        "        Generate one sample of data.\n",
+        "\n",
+        "        :param idx: Index of the sample to retrieve.\n",
+        "        :return: A dictionary containing the input IDs, attention mask, hard label, and soft label.\n",
+        "        \"\"\"\n",
+        "        row = self.dataframe.iloc[idx]\n",
+        "        text = row['text']\n",
+        "        hard_label = int(row['hard_label'])\n",
+        "        soft_label = [row['soft_label_0'], row['soft_label_1']]\n",
+        "\n",
+        "        # BERT tokenizer\n",
+        "        encoding = self.tokenizer.encode_plus(\n",
+        "            text,\n",
+        "            add_special_tokens=True,\n",
+        "            max_length=self.max_length,\n",
+        "            return_token_type_ids=False,\n",
+        "            padding='max_length',\n",
+        "            return_attention_mask=True,\n",
+        "            return_tensors='pt',\n",
+        "            truncation=True  # Truncate sequences that are longer than max_length !!\n",
+        "        )\n",
+        "\n",
+        "        return {\n",
+        "            'input_ids': encoding['input_ids'].flatten(),\n",
+        "            'attention_mask': encoding['attention_mask'].flatten(),\n",
+        "            'hard_label': torch.tensor(hard_label, dtype=torch.long),\n",
+        "            'soft_label': torch.tensor(soft_label, dtype=torch.float)\n",
+        "        }\n"
+      ],
+      "metadata": {
+        "id": "bQbKLTX_ypp_"
+      },
+      "execution_count": 32,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from torch.utils.data import DataLoader\n",
+        "\n",
+        "def create_data_loader(dataset, tokenizer, max_length, batch_size):\n",
+        "    \"\"\"\n",
+        "    Create a DataLoader from the Dataset.\n",
+        "\n",
+        "    :param dataset: The Dataset object containing the data.\n",
+        "    :param tokenizer: The tokenizer used to preprocess the text data.\n",
+        "    :param max_length: The maximum length of tokenized sequences.\n",
+        "    :param batch_size: The size of each batch of data.\n",
+        "    :return: A DataLoader object.\n",
+        "    \"\"\"\n",
+        "    return DataLoader(dataset, batch_size=batch_size, num_workers=4)\n"
+      ],
+      "metadata": {
+        "id": "ZWqWY_hbwiiH"
+      },
+      "execution_count": 33,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import torch.nn as nn\n",
+        "from transformers import BertModel\n",
+        "from transformers import BertTokenizer\n",
+        "\n",
+        "#Initialize the tokenizer\n",
+        "tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')\n",
+        "\n",
+        "dataset = BrexitDataset(dataframe=df, tokenizer=tokenizer, max_length=128)\n",
+        "data_loader = DataLoader(dataset, batch_size=16, num_workers=4)\n",
+        "\n",
+        "class BrexitModel(nn.Module):\n",
+        "    def __init__(self, n_classes):\n",
+        "        \"\"\"\n",
+        "        Initialize the BrexitModel with a pre-trained BERT model and additional layers for classification.\n",
+        "\n",
+        "        :param n_classes: The number of output classes for hard labels (binary classification in this case).\n",
+        "        \"\"\"\n",
+        "        super(BrexitModel, self).__init__()\n",
+        "        self.bert = BertModel.from_pretrained('bert-base-uncased')#Could be changed\n",
+        "        self.drop = nn.Dropout(p=0.3)  # Dropout layer for regularization it can be adjusted\n",
+        "        self.out_hard = nn.Linear(self.bert.config.hidden_size, n_classes)\n",
+        "        self.out_soft = nn.Linear(self.bert.config.hidden_size, 2)\n",
+        "\n",
+        "    def forward(self, input_ids, attention_mask):\n",
+        "        \"\"\"\n",
+        "        Forward pass of the model.\n",
+        "\n",
+        "        :param input_ids: Tokenized input text (input IDs).\n",
+        "        :param attention_mask: Attention mask to ignore padding tokens.\n",
+        "        :return: Output logits for hard labels and soft labels.\n",
+        "        \"\"\"\n",
+        "        bert_output = self.bert(input_ids=input_ids, attention_mask=attention_mask)  # Pass input through BERT\n",
+        "        pooled_output = self.mean_pooling(bert_output, attention_mask)  # Apply mean pooling on the output\n",
+        "        output_hard = self.out_hard(self.drop(pooled_output))\n",
+        "        output_soft = self.out_soft(self.drop(pooled_output))\n",
+        "        return output_hard, output_soft\n",
+        "\n",
+        "    def mean_pooling(self, model_output, attention_mask):\n",
+        "        \"\"\"\n",
+        "        Apply mean pooling to the BERT output to get a single vector representation.\n",
+        "\n",
+        "        :param model_output: The output of the BERT model.\n",
+        "        :param attention_mask: The attention mask.\n",
+        "        :return: A pooled output tensor.\n",
+        "        \"\"\"\n",
+        "        token_embeddings = model_output[0]  # Get the hidden states of the tokens\n",
+        "        input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()\n",
+        "        return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)\n"
+      ],
+      "metadata": {
+        "id": "jxT2AWqOy0K4"
+      },
+      "execution_count": 34,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "print(df.columns)\n",
+        "print(df.head())\n",
+        "#Flatten the 'soft_label' dictionary into separate columns\n",
+        "df['soft_label_0'] = df['soft_label'].apply(lambda x: x['0'])\n",
+        "df['soft_label_1'] = df['soft_label'].apply(lambda x: x['1'])\n",
+        "\n",
+        "print(df[['soft_label_0', 'soft_label_1']].head())\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "OHRW9RHvz8L7",
+        "outputId": "33f3257e-163e-4975-9ed2-856bf0e2b77a"
+      },
+      "execution_count": 35,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Index(['text', 'annotation task', 'number of annotations', 'annotations',\n",
+            "       'annotators', 'lang', 'hard_label', 'soft_label', 'split',\n",
+            "       'other_info'],\n",
+            "      dtype='object')\n",
+            "                                                text        annotation task  \\\n",
+            "0  <user> <user> I'm so glad about #Brexit.. My a...  hate speech detection   \n",
+            "1  RT <user>: There was more to #Brexit than immi...  hate speech detection   \n",
+            "2  At the end of the day, the leave campaign won ...  hate speech detection   \n",
+            "3  So the reducing migration thing wasn't quite w...  hate speech detection   \n",
+            "4  A Brit Immigrant Asks Britain to Become India’...  hate speech detection   \n",
+            "\n",
+            "   number of annotations  annotations                     annotators lang  \\\n",
+            "0                      6  0,0,0,0,0,0  Ann1,Ann2,Ann3,Ann4,Ann5,Ann6   en   \n",
+            "1                      6  0,0,0,0,0,0  Ann1,Ann2,Ann3,Ann4,Ann5,Ann6   en   \n",
+            "2                      6  0,0,0,0,0,0  Ann1,Ann2,Ann3,Ann4,Ann5,Ann6   en   \n",
+            "3                      6  0,0,0,0,0,0  Ann1,Ann2,Ann3,Ann4,Ann5,Ann6   en   \n",
+            "4                      6  0,0,0,0,0,0  Ann1,Ann2,Ann3,Ann4,Ann5,Ann6   en   \n",
+            "\n",
+            "  hard_label            soft_label  split  \\\n",
+            "0          0  {'0': 1.0, '1': 0.0}  train   \n",
+            "1          0  {'0': 1.0, '1': 0.0}  train   \n",
+            "2          0  {'0': 1.0, '1': 0.0}  train   \n",
+            "3          0  {'0': 1.0, '1': 0.0}  train   \n",
+            "4          0  {'0': 1.0, '1': 0.0}  train   \n",
+            "\n",
+            "                                          other_info  \n",
+            "0  {'other annotations': {'aggressive language de...  \n",
+            "1  {'other annotations': {'aggressive language de...  \n",
+            "2  {'other annotations': {'aggressive language de...  \n",
+            "3  {'other annotations': {'aggressive language de...  \n",
+            "4  {'other annotations': {'aggressive language de...  \n",
+            "   soft_label_0  soft_label_1\n",
+            "0           1.0           0.0\n",
+            "1           1.0           0.0\n",
+            "2           1.0           0.0\n",
+            "3           1.0           0.0\n",
+            "4           1.0           0.0\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import torch.optim as optim\n",
+        "from sklearn.metrics import f1_score\n",
+        "\n",
+        "#GPU/CPU\n",
+        "device = torch.device(\"cuda\" if torch.cuda.is_available() else \"cpu\")\n",
+        "model = BrexitModel(n_classes=2).to(device)\n",
+        "\n",
+        "# Optimizer & Loss functions\n",
+        "optimizer = optim.Adam(model.parameters(), lr=2e-5)\n",
+        "loss_fn_hard = nn.CrossEntropyLoss().to(device)\n",
+        "loss_fn_soft = nn.CrossEntropyLoss().to(device)\n",
+        "\n",
+        "#Training Loop\n",
+        "for epoch in range(3):  # Can be Enhanced\n",
+        "    model.train()\n",
+        "    total_hard_loss, total_correct, total_soft_loss = 0, 0, 0\n",
+        "\n",
+        "    all_preds = []\n",
+        "    all_labels = []\n",
+        "    for batch in data_loader:\n",
+        "        input_ids = batch['input_ids'].to(device)\n",
+        "        attention_mask = batch['attention_mask'].to(device)\n",
+        "        hard_labels = batch['hard_label'].to(device)\n",
+        "        soft_labels = batch['soft_label'].to(device)\n",
+        "\n",
+        "        optimizer.zero_grad()\n",
+        "\n",
+        "        #Forward pass\n",
+        "        output_hard, output_soft = model(input_ids=input_ids, attention_mask=attention_mask)\n",
+        "        loss_hard = loss_fn_hard(output_hard, hard_labels)\n",
+        "        loss_soft = loss_fn_soft(output_soft, soft_labels)\n",
+        "        #Combine the losses as technique to enhance backpropagation !?(it s just a try, with better results)\n",
+        "        loss = loss_hard + loss_soft\n",
+        "\n",
+        "        loss.backward()  # Backpropagation with total loss\n",
+        "        optimizer.step()\n",
+        "\n",
+        "        #Getting the predictions and the total losses\n",
+        "        _, preds = torch.max(output_hard, dim=1)\n",
+        "        total_correct += torch.sum(preds == hard_labels)\n",
+        "        total_hard_loss += loss_hard.item()\n",
+        "        total_soft_loss += loss_soft.item()\n",
+        "\n",
+        "        #Predictions & labels for F1 score calculation\n",
+        "        all_preds.extend(preds.cpu().numpy())\n",
+        "        all_labels.extend(hard_labels.cpu().numpy())\n",
+        "\n",
+        "    micro_f1 = f1_score(all_labels, all_preds, average='micro')\n",
+        "    avg_loss = total_hard_loss / len(data_loader)\n",
+        "    avg_soft_loss = total_soft_loss / len(data_loader)\n",
+        "\n",
+        "    # Results of each epoch\n",
+        "    print(f'Epoch {epoch+1}, Loss: {avg_loss}, Soft Label Loss (CE): {avg_soft_loss}, Micro F1 Score: {micro_f1}')\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "X_3E-iNm9588",
+        "outputId": "5128daa9-3d25-4f15-e715-027e1966f5e9"
+      },
+      "execution_count": 37,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Epoch 1, Loss: 0.32211117583269977, Soft Label Loss (CE): 0.38649479436631107, Micro F1 Score: 0.8992346938775511\n",
+            "Epoch 2, Loss: 0.22391409001180104, Soft Label Loss (CE): 0.30879201268663214, Micro F1 Score: 0.9132653061224489\n",
+            "Epoch 3, Loss: 0.12382447586527892, Soft Label Loss (CE): 0.2602285174082737, Micro F1 Score: 0.9477040816326531\n",
+            "Epoch 4, Loss: 0.09858737867420578, Soft Label Loss (CE): 0.2606340657387461, Micro F1 Score: 0.9630102040816326\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "#Testing\n",
+        "\n",
+        "with open('/content/HS-Brexit_test.json', 'r') as f:\n",
+        "    test_data = json.load(f)\n",
+        "\n",
+        "df_test = pd.DataFrame(test_data.values())\n",
+        "\n",
+        "df_test['soft_label_0'] = df_test['soft_label'].apply(lambda x: x['0'])\n",
+        "df_test['soft_label_1'] = df_test['soft_label'].apply(lambda x: x['1'])\n",
+        "test_dataset = BrexitDataset(dataframe=df_test, tokenizer=tokenizer, max_length=128)\n",
+        "test_loader = DataLoader(test_dataset, batch_size=16, num_workers=4)\n"
+      ],
+      "metadata": {
+        "id": "eDED8WKuH0Ot"
+      },
+      "execution_count": 38,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "model.eval()\n",
+        "\n",
+        "all_test_preds = []\n",
+        "all_test_labels = []\n",
+        "total_test_hard_loss, total_test_soft_loss = 0, 0\n",
+        "\n",
+        "with torch.no_grad():  # Disable gradient calculation for inference\n",
+        "    for batch in test_loader:\n",
+        "        input_ids = batch['input_ids'].to(device)\n",
+        "        attention_mask = batch['attention_mask'].to(device)\n",
+        "        hard_labels = batch['hard_label'].to(device)\n",
+        "        soft_labels = batch['soft_label'].to(device)\n",
+        "        output_hard, output_soft = model(input_ids=input_ids, attention_mask=attention_mask)\n",
+        "\n",
+        "        loss_hard = loss_fn_hard(output_hard, hard_labels)\n",
+        "        loss_soft = loss_fn_soft(output_soft, soft_labels)\n",
+        "\n",
+        "        total_test_hard_loss += loss_hard.item()\n",
+        "        total_test_soft_loss += loss_soft.item()\n",
+        "        _, preds = torch.max(output_hard, dim=1)\n",
+        "\n",
+        "        # Collect all predictions and true labels for evaluation\n",
+        "        all_test_preds.extend(preds.cpu().numpy())\n",
+        "        all_test_labels.extend(hard_labels.cpu().numpy())\n",
+        "\n",
+        "micro_f1_test = f1_score(all_test_labels, all_test_preds, average='micro')\n",
+        "\n",
+        "avg_test_hard_loss = total_test_hard_loss / len(test_loader)\n",
+        "avg_test_soft_loss = total_test_soft_loss / len(test_loader)\n",
+        "\n",
+        "print(f'Test Hard Loss: {avg_test_hard_loss}, Test Soft Label Loss (CE): {avg_test_soft_loss}, Test Micro F1 Score: {micro_f1_test}')\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "yb0oxClD9s40",
+        "outputId": "bfd4cb98-d8d9-4188-9a25-4aee96aec68a"
+      },
+      "execution_count": 39,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Test Hard Loss: 0.3749459395185113, Test Soft Label Loss (CE): 0.33361030979589984, Test Micro F1 Score: 0.8928571428571429\n"
+          ]
+        }
+      ]
+    }
+  ]
+}
